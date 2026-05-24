@@ -15,6 +15,11 @@ data/
 .vscode/
 *.swp
 
+# 临时目录
+demo/
+tasks/
+docs/
+
 # OS
 .DS_Store
 Thumbs.db
