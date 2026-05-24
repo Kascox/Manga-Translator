@@ -1,0 +1,27 @@
+server:
+  http:
+    addr: "0.0.0.0:8080"
+    timeout: 30s
+
+database:
+  driver: "sqlite"
+  dsn: "./data/comic-translator.db"
+
+vectorstore:
+  type: "chromem"
+  path: "./data/chromem"
+
+llm:
+  provider: "deepseek"
+  api_key_env: "DEEPSEEK_API_KEY"
+  model: "deepseek-chat"
+  base_url: "https://api.deepseek.com"
+
+image_processing:
+  provider: "gpt-image-2"
+  api_key_env: "OPENAI_API_KEY"
+  model: "gpt-image-2"
+
+logging:
+  level: "info"
+  format: "json"

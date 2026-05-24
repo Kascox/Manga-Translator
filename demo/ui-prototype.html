@@ -1,0 +1,2203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>漫画翻译工具 - UI原型演示</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/antd@5/dist/reset.min.css">
+<style>
+  /* ========== 全局样式 ========== */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f5f5f5;
+    color: #333;
+    height: 100vh;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* ========== 三栏布局 ========== */
+  .app-layout {
+    display: flex;
+    height: 100vh;
+    gap: 0;
+  }
+
+  /* ========== 左侧面板 ========== */
+  .left-panel {
+    width: 250px;
+    min-width: 200px;
+    max-width: 400px;
+    background: #fff;
+    border-right: 1px solid #e8e8e8;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.06);
+    position: relative;
+    z-index: 10;
+  }
+  .panel-header {
+    padding: 16px;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 15px;
+    font-weight: 600;
+    color: #1677ff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .panel-header .icon { font-size: 18px; }
+  .lang-selector-row {
+    padding: 8px 16px 12px;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .lang-select-group {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .lang-select-group label {
+    font-size: 11px;
+    color: #999;
+    white-space: nowrap;
+  }
+  .lang-select {
+    flex: 1;
+    padding: 3px 6px;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    font-size: 12px;
+    outline: none;
+    background: #fff;
+    cursor: pointer;
+    min-width: 0;
+    font-family: inherit;
+  }
+  .lang-select:focus { border-color: #1677ff; }
+  .lang-arrow {
+    font-size: 14px;
+    color: #999;
+    flex-shrink: 0;
+  }
+  .file-tree {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+  .tree-item {
+    padding: 6px 12px 6px calc(12px + var(--depth, 0) * 20px);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #333;
+    transition: background 0.15s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .tree-item:hover { background: #e6f4ff; }
+  .tree-item.active { background: #bae0ff; color: #1677ff; font-weight: 500; }
+  .tree-arrow {
+    display: inline-flex;
+    width: 16px;
+    height: 16px;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: #999;
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+  .tree-arrow.expanded { transform: rotate(90deg); }
+  .tree-arrow.hidden { visibility: hidden; }
+  .tree-icon { flex-shrink: 0; font-size: 14px; }
+  .tree-icon.folder { color: #faad14; }
+  .tree-icon.file { color: #999; }
+  .tree-label { overflow: hidden; text-overflow: ellipsis; }
+  .tree-status {
+    margin-left: auto;
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+  .tree-status.done { background: #f6ffed; color: #52c41a; }
+  .tree-status.translating { background: #e6f4ff; color: #1677ff; }
+  .tree-status.pending { background: #fff7e6; color: #faad14; }
+  .tree-children { display: none; }
+  .tree-children.expanded { display: block; }
+
+  .panel-footer {
+    border-top: 1px solid #f0f0f0;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .panel-footer-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid #d9d9d9;
+    border-radius: 6px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    color: #333;
+    transition: all 0.2s;
+  }
+  .panel-footer-btn:hover {
+    border-color: #1677ff;
+    color: #1677ff;
+    background: #f0f5ff;
+  }
+  .panel-footer-btn .icon { font-size: 15px; }
+
+  /* ========== 左下角设置按钮 ========== */
+  .settings-btn {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: #fff;
+    border: 1px solid #d9d9d9;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: #666;
+    transition: all 0.25s;
+    z-index: 100;
+  }
+  .settings-btn:hover {
+    color: #1677ff;
+    border-color: #1677ff;
+    box-shadow: 0 4px 12px rgba(22,119,255,0.2);
+    transform: rotate(45deg);
+  }
+
+  /* ========== 中间区域 ========== */
+  .center-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background: #f5f5f5;
+  }
+  .toolbar {
+    background: #fff;
+    border-bottom: 1px solid #e8e8e8;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .toolbar-sep {
+    width: 1px;
+    height: 24px;
+    background: #e8e8e8;
+    margin: 0 4px;
+  }
+  .toolbar-btn {
+    padding: 6px 14px;
+    border: 1px solid #d9d9d9;
+    border-radius: 6px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s;
+  }
+  .toolbar-btn:hover { border-color: #1677ff; color: #1677ff; }
+  .toolbar-btn.active {
+    background: #1677ff;
+    color: #fff;
+    border-color: #1677ff;
+  }
+  .toolbar-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .zoom-control {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    font-size: 12px;
+    color: #666;
+  }
+  .zoom-slider {
+    width: 100px;
+    accent-color: #1677ff;
+  }
+
+  .canvas-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    overflow: hidden;
+    position: relative;
+  }
+  .canvas-wrapper {
+    position: relative;
+    background: #e0e0e0;
+    border-radius: 4px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+    overflow: hidden;
+  }
+  .canvas-wrapper canvas {
+    display: block;
+  }
+
+  .status-bar {
+    background: #fff;
+    border-top: 1px solid #e8e8e8;
+    padding: 6px 16px;
+    font-size: 12px;
+    color: #999;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .status-bar .status-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-right: 4px;
+  }
+  .status-dot.blue { background: #1677ff; }
+  .status-dot.green { background: #52c41a; }
+  .status-dot.orange { background: #faad14; }
+
+  /* ========== 右侧面板 ========== */
+  .right-panel {
+    width: 350px;
+    min-width: 280px;
+    max-width: 500px;
+    background: #fff;
+    border-left: 1px solid #e8e8e8;
+    display: flex;
+    flex-direction: column;
+    box-shadow: -2px 0 8px rgba(0,0,0,0.06);
+    position: relative;
+    z-index: 10;
+  }
+  .right-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    gap: 8px;
+  }
+  .btn-primary {
+    padding: 6px 16px;
+    background: #1677ff;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .btn-primary:hover { background: #4096ff; }
+  .btn-default {
+    padding: 6px 16px;
+    background: #fff;
+    color: #333;
+    border: 1px solid #d9d9d9;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .btn-default:hover { border-color: #1677ff; color: #1677ff; }
+
+  .translation-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+  }
+  .translation-item {
+    background: #fafafa;
+    border: 1px solid #f0f0f0;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+    transition: all 0.2s;
+    cursor: default;
+    position: relative;
+  }
+  .translation-item:hover {
+    border-color: #d9d9d9;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .translation-item.highlight {
+    border-color: #1677ff;
+    background: #f0f5ff;
+  }
+  .item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .item-number {
+    font-weight: 600;
+    font-size: 13px;
+    color: #1677ff;
+  }
+  .item-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+  .item-badge.translated { background: #f6ffed; color: #52c41a; }
+  .item-badge.pending { background: #fff7e6; color: #faad14; }
+  .item-badge.ignored { background: #f5f5f5; color: #999; }
+
+  .original-text {
+    font-size: 13px;
+    color: #333;
+    margin-bottom: 4px;
+    line-height: 1.5;
+  }
+  .original-text .label {
+    color: #999;
+    font-size: 11px;
+    margin-right: 4px;
+  }
+  .translated-text {
+    font-size: 13px;
+    color: #1677ff;
+    line-height: 1.5;
+    background: #f0f5ff;
+    padding: 6px 8px;
+    border-radius: 4px;
+    margin-top: 4px;
+  }
+  .translated-text .label {
+    color: #999;
+    font-size: 11px;
+    margin-right: 4px;
+  }
+  .ignored-text {
+    font-size: 12px;
+    color: #999;
+    margin-top: 2px;
+    font-style: italic;
+  }
+  .item-actions {
+    margin-top: 8px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .item-btn {
+    padding: 3px 10px;
+    font-size: 12px;
+    border-radius: 4px;
+    border: 1px solid #d9d9d9;
+    background: #fff;
+    cursor: pointer;
+    color: #333;
+    transition: all 0.15s;
+  }
+  .item-btn:hover { border-color: #1677ff; color: #1677ff; }
+  .item-btn.primary-sm {
+    background: #1677ff;
+    color: #fff;
+    border-color: #1677ff;
+  }
+  .item-btn.primary-sm:hover { background: #4096ff; }
+  .item-btn.danger:hover { border-color: #ff4d4f; color: #ff4d4f; }
+
+  /* ========== 右键菜单 ========== */
+  .context-menu {
+    position: fixed;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    padding: 4px 0;
+    min-width: 140px;
+    z-index: 1000;
+    display: none;
+    border: 1px solid #f0f0f0;
+  }
+  .context-menu.show { display: block; }
+  .context-menu-item {
+    padding: 8px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #333;
+    transition: background 0.1s;
+  }
+  .context-menu-item:hover { background: #e6f4ff; color: #1677ff; }
+  .context-menu-item.danger { color: #ff4d4f; }
+  .context-menu-item.danger:hover { background: #fff1f0; }
+  .context-menu-divider {
+    height: 1px;
+    background: #f0f0f0;
+    margin: 4px 0;
+  }
+
+  /* ========== 模态框 ========== */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 500;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(2px);
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: #fff;
+    border-radius: 12px;
+    width: 480px;
+    max-width: 90vw;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.16);
+    animation: modalIn 0.25s ease;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: translateY(-20px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .modal-header {
+    padding: 20px 24px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .modal-header h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+  }
+  .modal-close {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 18px;
+    color: #999;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .modal-close:hover { background: #f5f5f5; color: #333; }
+  .modal-body { padding: 12px 24px 24px; }
+  .form-group {
+    margin-bottom: 16px;
+  }
+  .form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 6px;
+  }
+  .form-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #d9d9d9;
+    border-radius: 6px;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+    font-family: inherit;
+  }
+  .form-input:focus { border-color: #1677ff; box-shadow: 0 0 0 2px rgba(22,119,255,0.1); }
+  .form-select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #d9d9d9;
+    border-radius: 6px;
+    font-size: 13px;
+    outline: none;
+    background: #fff;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    font-family: inherit;
+  }
+  .form-select:focus { border-color: #1677ff; box-shadow: 0 0 0 2px rgba(22,119,255,0.1); }
+  .form-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 14px;
+    border: 1px dashed #d9d9d9;
+    border-radius: 6px;
+    color: #1677ff;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+    margin-bottom: 10px;
+  }
+  .form-link:hover { border-color: #1677ff; background: #f0f5ff; }
+  .modal-footer {
+    padding: 12px 24px 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  /* ========== 图片加工按钮 ========== */
+  .process-btn-wrapper {
+    padding: 12px 16px;
+    border-top: 1px solid #f0f0f0;
+    display: none;
+  }
+  .process-btn-wrapper.show { display: block; }
+  .process-btn {
+    width: 100%;
+    padding: 10px;
+    background: linear-gradient(135deg, #1677ff, #4096ff);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .process-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(22,119,255,0.3);
+  }
+
+  /* ========== 拖拽调整宽度的手柄 ========== */
+  .resize-handle {
+    width: 4px;
+    cursor: col-resize;
+    background: transparent;
+    transition: background 0.2s;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 20;
+  }
+  .resize-handle:hover,
+  .resize-handle.dragging {
+    background: #1677ff;
+  }
+
+  /* ========== 滚动条 ========== */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #d9d9d9; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #bfbfbf; }
+
+  /* ========== Toast 提示 ========== */
+  .toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-60px);
+    background: #fff;
+    padding: 10px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    font-size: 13px;
+    z-index: 2000;
+    opacity: 0;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-left: 3px solid #1677ff;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  .toast.success { border-left-color: #52c41a; }
+  .toast.warning { border-left-color: #faad14; }
+
+  /* ========== 原文可划选 ========== */
+  .original-text.selectable {
+    user-select: text;
+    -webkit-user-select: text;
+    cursor: text;
+  }
+  .original-text.selectable::selection {
+    background: #bae0ff;
+    color: #1677ff;
+  }
+
+  /* ========== 语言Tag ========== */
+  .lang-tag {
+    display: inline-block;
+    font-size: 11px;
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-weight: 500;
+    margin-right: 6px;
+    flex-shrink: 0;
+  }
+  .lang-tag.ja { background: #fff1f0; color: #f5222d; }
+  .lang-tag.zh { background: #e6f4ff; color: #1677ff; }
+  .lang-tag.en { background: #f6ffed; color: #52c41a; }
+  .lang-tag.ko { background: #f9f0ff; color: #722ed1; }
+
+  /* ========== 术语库弹窗 ========== */
+  .glossary-modal .modal {
+    width: 420px;
+  }
+  .glossary-source-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .glossary-source-row .form-input {
+    flex: 1;
+    background: #f5f5f5;
+  }
+  .glossary-divider {
+    text-align: center;
+    color: #bbb;
+    font-size: 12px;
+    margin: 12px 0 16px;
+    position: relative;
+  }
+  .glossary-divider::before,
+  .glossary-divider::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 35%;
+    height: 1px;
+    background: #e8e8e8;
+  }
+  .glossary-divider::before { left: 0; }
+  .glossary-divider::after { right: 0; }
+  .target-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .target-row .lang-select {
+    width: 80px;
+    flex-shrink: 0;
+    padding: 5px 6px;
+    font-size: 12px;
+  }
+  .target-row .form-input {
+    flex: 1;
+    padding: 5px 10px;
+    font-size: 13px;
+  }
+  .target-row .row-delete {
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: #999;
+    font-size: 14px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .target-row .row-delete:hover { background: #fff1f0; color: #ff4d4f; }
+  .add-target-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 6px 12px;
+    border: 1px dashed #d9d9d9;
+    border-radius: 6px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 12px;
+    color: #1677ff;
+    transition: all 0.2s;
+    margin-bottom: 16px;
+    width: 100%;
+  }
+  .add-target-btn:hover { border-color: #1677ff; background: #f0f5ff; }
+
+  /* ========== 角色Tag ========== */
+  .character-tag-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+    position: relative;
+  }
+  .character-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 11px;
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-weight: 500;
+    cursor: pointer;
+    color: #fff;
+    transition: all 0.2s;
+    white-space: nowrap;
+    user-select: none;
+  }
+  .character-tag:hover {
+    filter: brightness(1.1);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  }
+  .character-tag .tag-arrow {
+    font-size: 9px;
+    margin-left: 2px;
+  }
+
+  /* ========== 角色下拉菜单 ========== */
+  .character-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    padding: 4px 0;
+    min-width: 140px;
+    z-index: 1000;
+    display: none;
+    border: 1px solid #f0f0f0;
+  }
+  .character-dropdown.show { display: block; }
+  .character-dropdown-item {
+    padding: 7px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #333;
+    transition: background 0.1s;
+  }
+  .character-dropdown-item:hover { background: #e6f4ff; color: #1677ff; }
+  .character-dropdown-item .char-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .character-dropdown-divider {
+    height: 1px;
+    background: #f0f0f0;
+    margin: 4px 0;
+  }
+  .character-dropdown-item.custom-item {
+    color: #1677ff;
+  }
+
+  /* ========== 角色管理弹窗 ========== */
+  .character-modal .modal { width: 520px; }
+  .character-card {
+    background: #fafafa;
+    border: 1px solid #f0f0f0;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    transition: all 0.2s;
+  }
+  .character-card:hover {
+    border-color: #d9d9d9;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .character-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .character-card-name {
+    font-size: 15px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .character-card-name .name-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+  .character-card-actions {
+    display: flex;
+    gap: 6px;
+  }
+  .character-card-actions button {
+    padding: 3px 10px;
+    font-size: 12px;
+    border-radius: 4px;
+    border: 1px solid #d9d9d9;
+    background: #fff;
+    cursor: pointer;
+    color: #333;
+    transition: all 0.15s;
+  }
+  .character-card-actions button:hover { border-color: #1677ff; color: #1677ff; }
+  .character-card-actions button.danger-btn:hover { border-color: #ff4d4f; color: #ff4d4f; }
+  .character-card-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 16px;
+  }
+  .character-card-field {
+    font-size: 12px;
+    color: #666;
+    line-height: 1.6;
+  }
+  .character-card-field .field-label {
+    color: #999;
+    margin-right: 4px;
+  }
+  .character-card-field.full-width {
+    grid-column: 1 / -1;
+  }
+  .add-character-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 10px;
+    border: 1px dashed #d9d9d9;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    color: #1677ff;
+    transition: all 0.2s;
+    width: 100%;
+  }
+  .add-character-btn:hover { border-color: #1677ff; background: #f0f5ff; }
+
+  /* ========== 风格规则弹窗 ========== */
+  .style-rule-modal .modal { width: 520px; }
+  .style-rule-section {
+    margin-bottom: 20px;
+  }
+  .style-rule-section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .style-rule-section-title .section-icon {
+    font-size: 14px;
+  }
+  .style-rule-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    background: #fafafa;
+    border: 1px solid #f0f0f0;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    transition: all 0.2s;
+  }
+  .style-rule-item:hover {
+    border-color: #d9d9d9;
+  }
+  .style-rule-item .tree-line {
+    color: #bbb;
+    margin-right: 8px;
+    font-family: monospace;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .style-rule-item .rule-content {
+    flex: 1;
+    font-size: 13px;
+    color: #333;
+  }
+  .style-rule-item .rule-content .rule-label {
+    color: #999;
+    font-size: 12px;
+  }
+  .style-rule-item .rule-actions {
+    display: flex;
+    gap: 4px;
+    margin-left: 8px;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .style-rule-item:hover .rule-actions { opacity: 1; }
+  .style-rule-item .rule-actions button {
+    padding: 2px 8px;
+    font-size: 11px;
+    border-radius: 3px;
+    border: 1px solid #d9d9d9;
+    background: #fff;
+    cursor: pointer;
+    color: #666;
+    transition: all 0.15s;
+  }
+  .style-rule-item .rule-actions button:hover { border-color: #1677ff; color: #1677ff; }
+  .style-rule-item .rule-actions button.danger-btn:hover { border-color: #ff4d4f; color: #ff4d4f; }
+  .add-rule-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 12px;
+    border: 1px dashed #d9d9d9;
+    border-radius: 6px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 12px;
+    color: #1677ff;
+    transition: all 0.2s;
+    width: 100%;
+    margin-top: 8px;
+  }
+  .add-rule-btn:hover { border-color: #1677ff; background: #f0f5ff; }
+</style>
+</head>
+<body>
+
+<!-- ========== 左侧面板 ========== -->
+<div class="app-layout">
+  <div class="left-panel" id="leftPanel">
+    <div class="panel-header">
+      <span class="icon">📁</span>
+      海贼王翻译项目
+    </div>
+    <div class="lang-selector-row">
+      <div class="lang-select-group">
+        <label>源语言:</label>
+        <select class="lang-select" id="srcLang" onchange="onLangChange()">
+          <option value="ja" selected>日语</option>
+          <option value="en">英语</option>
+          <option value="ko">韩语</option>
+        </select>
+      </div>
+      <span class="lang-arrow">→</span>
+      <div class="lang-select-group">
+        <label>目标语言:</label>
+        <select class="lang-select" id="tgtLang" onchange="onLangChange()">
+          <option value="zh" selected>中文</option>
+          <option value="en">英语</option>
+          <option value="ja">日语</option>
+          <option value="ko">韩语</option>
+        </select>
+      </div>
+    </div>
+    <div class="file-tree" id="fileTree">
+      <!-- 动态生成 -->
+    </div>
+    <div class="panel-footer">
+      <div class="panel-footer-btn" onclick="showToast('术语库管理功能演示', 'warning')">
+        <span class="icon">📖</span> 术语库设置
+      </div>
+      <div class="panel-footer-btn" onclick="showToast('知识库管理功能演示', 'warning')">
+        <span class="icon">🧠</span> 知识库设置
+      </div>
+      <div class="panel-footer-btn" onclick="openCharacterModal()">
+        <span class="icon">👤</span> 角色管理
+      </div>
+      <div class="panel-footer-btn" onclick="openStyleRuleModal()">
+        <span class="icon">📋</span> 风格规则
+      </div>
+    </div>
+  </div>
+
+  <div class="resize-handle" id="leftResize"></div>
+
+  <!-- ========== 中间区域 ========== -->
+  <div class="center-panel">
+    <div class="toolbar">
+      <button class="toolbar-btn" id="prevBtn" onclick="navigatePage(-1)">◀ 上一张</button>
+      <button class="toolbar-btn" id="nextBtn" onclick="navigatePage(1)">下一张 ▶</button>
+      <div class="toolbar-sep"></div>
+      <button class="toolbar-btn tool-btn" data-tool="rect" onclick="switchTool(this, 'rect')">▭ 框选模式</button>
+      <button class="toolbar-btn tool-btn" data-tool="lasso" onclick="switchTool(this, 'lasso')">◯ 套索模式</button>
+      <button class="toolbar-btn tool-btn active" data-tool="auto" onclick="switchTool(this, 'auto')">🔍 自动识别</button>
+      <div class="toolbar-sep"></div>
+      <div class="zoom-control">
+        <span>缩放</span>
+        <input type="range" class="zoom-slider" id="zoomSlider" min="30" max="200" value="100" oninput="updateZoom(this.value)">
+        <span id="zoomValue">100%</span>
+      </div>
+    </div>
+
+    <div class="canvas-area" id="canvasArea">
+      <div class="canvas-wrapper" id="canvasWrapper">
+        <canvas id="mainCanvas" width="600" height="800"></canvas>
+      </div>
+    </div>
+
+    <div class="status-bar" id="statusBar">
+      <span><span class="status-dot blue"></span> page_002.jpg</span>
+      <span>已识别 5 个文本区域</span>
+      <span>已翻译 2/5</span>
+    </div>
+  </div>
+
+  <div class="resize-handle" id="rightResize"></div>
+
+  <!-- ========== 右侧面板 ========== -->
+  <div class="right-panel" id="rightPanel">
+    <div class="right-header">
+      <button class="btn-primary" onclick="translateAll()">🌐 全部翻译</button>
+      <button class="btn-default" onclick="showToast('批量导出功能演示', 'success')">📦 批量导出</button>
+    </div>
+    <div class="translation-list" id="translationList">
+      <!-- 动态生成 -->
+    </div>
+    <div class="process-btn-wrapper" id="processBtnWrapper">
+      <button class="process-btn" onclick="showToast('图片加工功能：将译文渲染到原图上', 'success')">
+        🎨 图片加工
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 设置按钮 ========== -->
+<button class="settings-btn" onclick="openSettings()">⚙</button>
+
+<!-- ========== 右键菜单 ========== -->
+<div class="context-menu" id="contextMenu">
+  <div class="context-menu-item" onclick="contextAction('ignore')">🚫 忽略此条</div>
+  <div class="context-menu-item" onclick="contextAction('glossary')">📖 加入术语库</div>
+  <div class="context-menu-divider"></div>
+  <div class="context-menu-item danger" onclick="contextAction('delete')">🗑 删除</div>
+</div>
+
+<!-- ========== 带划选文字的右键菜单 ========== -->
+<div class="context-menu" id="contextMenuSelected">
+  <div class="context-menu-item" onclick="contextActionWithSelection('addGlossary')">📖 加入术语库</div>
+  <div class="context-menu-divider"></div>
+  <div class="context-menu-item" onclick="contextActionWithSelection('ignore')">🚫 忽略此条</div>
+  <div class="context-menu-item danger" onclick="contextActionWithSelection('delete')">🗑 删除</div>
+</div>
+
+<!-- ========== 设置模态框 ========== -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>⚙ 全局设置</h3>
+      <button class="modal-close" onclick="closeSettings()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>API Key 配置</label>
+        <input type="password" class="form-input" value="sk-xxxxxxxxxxxxxxxxxxxx" placeholder="请输入API Key">
+      </div>
+      <div class="form-group">
+        <label>翻译模型选择</label>
+        <select class="form-select">
+          <option value="deepseek" selected>DeepSeek</option>
+          <option value="gpt4">GPT-4</option>
+          <option value="gpt35">GPT-3.5-turbo</option>
+          <option value="claude">Claude</option>
+          <option value="other">其他</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>扩展功能</label>
+        <div class="form-link" onclick="showToast('全局术语库管理入口', 'warning')">
+          📖 全局术语库管理
+        </div>
+        <div class="form-link" onclick="showToast('知识库管理入口', 'warning')">
+          🧠 知识库管理
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-default" onclick="closeSettings()">取消</button>
+      <button class="btn-primary" onclick="closeSettings(); showToast('设置已保存', 'success')">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 术语库编辑弹窗 ========== -->
+<div class="modal-overlay glossary-modal" id="glossaryModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>📖 加入术语库</h3>
+      <button class="modal-close" onclick="closeGlossaryModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>源术语</label>
+        <div class="glossary-source-row">
+          <span class="lang-tag" id="glossarySrcTag">日语</span>
+          <input type="text" class="form-input" id="glossarySrcInput" readonly>
+        </div>
+      </div>
+      <div class="glossary-divider">─── 目标翻译 ───</div>
+      <div class="form-group">
+        <div id="targetRowsContainer">
+          <!-- 动态生成 -->
+        </div>
+        <button class="add-target-btn" onclick="addTargetRow()">+ 添加目标语言</button>
+      </div>
+      <div class="form-group">
+        <label>备注</label>
+        <input type="text" class="form-input" id="glossaryNote" placeholder="可选，填入备注信息">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-default" onclick="closeGlossaryModal()">取消</button>
+      <button class="btn-primary" onclick="confirmGlossary()">确认加入</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 角色管理弹窗 ========== -->
+<div class="modal-overlay character-modal" id="characterModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>👤 角色风格管理</h3>
+      <button class="modal-close" onclick="closeCharacterModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- 路飞 -->
+      <div class="character-card">
+        <div class="character-card-header">
+          <div class="character-card-name">
+            <span class="name-dot" style="background:#ff8c00"></span>
+            路飞
+          </div>
+          <div class="character-card-actions">
+            <button onclick="showToast('功能演示：编辑路飞', '')">编辑</button>
+            <button class="danger-btn" onclick="showToast('功能演示：删除路飞', 'warning')">删除</button>
+          </div>
+        </div>
+        <div class="character-card-body">
+          <div class="character-card-field"><span class="field-label">所属群体:</span>草帽海贼团</div>
+          <div class="character-card-field"><span class="field-label">人称偏好:</span>我/俺</div>
+          <div class="character-card-field"><span class="field-label">句式风格:</span>短句、感叹句为主</div>
+          <div class="character-card-field"><span class="field-label">语气词:</span>嘿嘿、哈哈</div>
+          <div class="character-card-field full-width"><span class="field-label">口头禅:</span>"我是要成为海贼王的男人！"</div>
+          <div class="character-card-field"><span class="field-label">用词等级:</span>口语化、简单直接</div>
+        </div>
+      </div>
+      <!-- 索隆 -->
+      <div class="character-card">
+        <div class="character-card-header">
+          <div class="character-card-name">
+            <span class="name-dot" style="background:#2e8b57"></span>
+            索隆
+          </div>
+          <div class="character-card-actions">
+            <button onclick="showToast('功能演示：编辑索隆', '')">编辑</button>
+            <button class="danger-btn" onclick="showToast('功能演示：删除索隆', 'warning')">删除</button>
+          </div>
+        </div>
+        <div class="character-card-body">
+          <div class="character-card-field"><span class="field-label">所属群体:</span>草帽海贼团</div>
+          <div class="character-card-field"><span class="field-label">人称偏好:</span>我</div>
+          <div class="character-card-field"><span class="field-label">句式风格:</span>简洁有力、偶尔粗犷</div>
+          <div class="character-card-field"><span class="field-label">语气词:</span>哼、切</div>
+          <div class="character-card-field full-width"><span class="field-label">口头禅:</span>无</div>
+          <div class="character-card-field"><span class="field-label">用词等级:</span>中性偏硬朗</div>
+        </div>
+      </div>
+      <!-- 娜美 -->
+      <div class="character-card">
+        <div class="character-card-header">
+          <div class="character-card-name">
+            <span class="name-dot" style="background:#ff69b4"></span>
+            娜美
+          </div>
+          <div class="character-card-actions">
+            <button onclick="showToast('功能演示：编辑娜美', '')">编辑</button>
+            <button class="danger-btn" onclick="showToast('功能演示：删除娜美', 'warning')">删除</button>
+          </div>
+        </div>
+        <div class="character-card-body">
+          <div class="character-card-field"><span class="field-label">所属群体:</span>草帽海贼团</div>
+          <div class="character-card-field"><span class="field-label">人称偏好:</span>我</div>
+          <div class="character-card-field"><span class="field-label">句式风格:</span>灵活多变、情绪丰富</div>
+          <div class="character-card-field"><span class="field-label">语气词:</span>呐、真是的</div>
+          <div class="character-card-field full-width"><span class="field-label">口头禅:</span>无</div>
+          <div class="character-card-field"><span class="field-label">用词等级:</span>日常口语、偶尔强势</div>
+        </div>
+      </div>
+      <!-- 新增角色按钮 -->
+      <button class="add-character-btn" onclick="showToast('功能演示：新增角色', '')">+ 新增角色</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 风格规则弹窗 ========== -->
+<div class="modal-overlay style-rule-modal" id="styleRuleModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>📋 风格规则管理</h3>
+      <button class="modal-close" onclick="closeStyleRuleModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- 作品级规则 -->
+      <div class="style-rule-section">
+        <div class="style-rule-section-title">
+          <span class="section-icon">📖</span> 作品级规则
+        </div>
+        <div class="style-rule-item">
+          <span class="tree-line">├──</span>
+          <div class="rule-content"><span class="rule-label">整体风格:</span>少年漫画，语言活泼热血</div>
+          <div class="rule-actions">
+            <button onclick="showToast('功能演示：编辑规则', '')">编辑</button>
+            <button class="danger-btn" onclick="showToast('功能演示：删除规则', 'warning')">删除</button>
+          </div>
+        </div>
+        <div class="style-rule-item">
+          <span class="tree-line">├──</span>
+          <div class="rule-content"><span class="rule-label">时代背景:</span>架空世界，可使用现代口语</div>
+          <div class="rule-actions">
+            <button onclick="showToast('功能演示：编辑规则', '')">编辑</button>
+            <button class="danger-btn" onclick="showToast('功能演示：删除规则', 'warning')">删除</button>
+          </div>
+        </div>
+        <div class="style-rule-item">
+          <span class="tree-line">└──</span>
+          <div class="rule-content"><span class="rule-label">读者定位:</span>青少年向，避免过于书面化</div>
+          <div class="rule-actions">
+            <button onclick="showToast('功能演示：编辑规则', '')">编辑</button>
+            <button class="danger-btn" onclick="showToast('功能演示：删除规则', 'warning')">删除</button>
+          </div>
+        </div>
+      </div>
+      <!-- 群体级规则 -->
+      <div class="style-rule-section">
+        <div class="style-rule-section-title">
+          <span class="section-icon">👥</span> 群体级规则
+        </div>
+        <div class="style-rule-item">
+          <span class="tree-line">├──</span>
+          <div class="rule-content"><span class="rule-label">草帽海贼团:</span>整体风格活泼、直率</div>
+          <div class="rule-actions">
+            <button onclick="showToast('功能演示：编辑规则', '')">编辑</button>
+            <button class="danger-btn" onclick="showToast('功能演示：删除规则', 'warning')">删除</button>
+          </div>
+        </div>
+        <div class="style-rule-item">
+          <span class="tree-line">├──</span>
+          <div class="rule-content"><span class="rule-label">海军:</span>正式、严肃、官方用语</div>
+          <div class="rule-actions">
+            <button onclick="showToast('功能演示：编辑规则', '')">编辑</button>
+            <button class="danger-btn" onclick="showToast('功能演示：删除规则', 'warning')">删除</button>
+          </div>
+        </div>
+        <div class="style-rule-item">
+          <span class="tree-line">└──</span>
+          <div class="rule-content"><span class="rule-label">七武海:</span>各有特色，偏阴沉/深沉</div>
+          <div class="rule-actions">
+            <button onclick="showToast('功能演示：编辑规则', '')">编辑</button>
+            <button class="danger-btn" onclick="showToast('功能演示：删除规则', 'warning')">删除</button>
+          </div>
+        </div>
+        <button class="add-rule-btn" onclick="showToast('功能演示：添加规则', '')">+ 添加规则</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== Toast ========== -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ========== 数据 ==========
+const fileTreeData = {
+  name: '海贼王翻译项目', type: 'folder', expanded: true,
+  children: [
+    {
+      name: '第001话', type: 'folder', expanded: true,
+      children: [
+        { name: 'progress.json', type: 'file', icon: 'doc' },
+        {
+          name: 'original', type: 'folder', expanded: false,
+          children: [
+            { name: 'page_001.jpg', type: 'file', icon: 'image' },
+            { name: 'page_002.jpg', type: 'file', icon: 'image' },
+            { name: 'page_003.jpg', type: 'file', icon: 'image' },
+          ]
+        },
+        {
+          name: 'translated', type: 'folder', expanded: false,
+          children: [
+            { name: 'page_001.jpg', type: 'file', icon: 'image', status: 'done', statusText: '已完成' },
+            { name: 'page_002.jpg', type: 'file', icon: 'image', status: 'translating', statusText: '加工中' },
+          ]
+        },
+      ]
+    },
+    { name: '第002话', type: 'folder', expanded: false, children: [
+      { name: 'progress.json', type: 'file', icon: 'doc' },
+      {
+        name: 'original', type: 'folder', expanded: false,
+        children: [
+          { name: 'page_001.jpg', type: 'file', icon: 'image' },
+          { name: 'page_002.jpg', type: 'file', icon: 'image' },
+        ]
+      },
+      {
+        name: 'translated', type: 'folder', expanded: false,
+        children: []
+      },
+    ]},
+    { name: '第003话', type: 'folder', expanded: false, children: [
+      { name: 'progress.json', type: 'file', icon: 'doc' },
+      {
+        name: 'original', type: 'folder', expanded: false,
+        children: [
+          { name: 'page_001.jpg', type: 'file', icon: 'image' },
+        ]
+      },
+      {
+        name: 'translated', type: 'folder', expanded: false,
+        children: []
+      },
+    ]},
+  ]
+};
+
+const translations = [
+  {
+    id: 1, status: 'translated', statusText: '已翻译',
+    original: 'おれは海賊王になる男だ！',
+    translated: '我是要成为海贼王的男人！',
+    character: '路飞',
+    actions: ['edit', 'confirm', 'delete']
+  },
+  {
+    id: 2, status: 'translated', statusText: '已翻译',
+    original: '仲間を守るために強くなる',
+    translated: '为了保护同伴而变得更强',
+    character: '路飞',
+    actions: ['edit', 'confirm', 'delete']
+  },
+  {
+    id: 3, status: 'pending', statusText: '待翻译',
+    original: '夢を諦めるな',
+    translated: null,
+    character: '索隆',
+    actions: ['translate', 'delete']
+  },
+  {
+    id: 4, status: 'pending', statusText: '待翻译',
+    original: '約束は必ず守る',
+    translated: null,
+    character: null,
+    actions: ['translate', 'delete']
+  },
+  {
+    id: 5, status: 'ignored', statusText: '已忽略',
+    original: 'ドドドド',
+    note: '拟声词',
+    translated: null,
+    character: null,
+    actions: ['unignore']
+  },
+];
+
+// Canvas text regions
+const textRegions = [
+  { x: 80, y: 100, w: 200, h: 45, text: 'おれは海賊王に\nなる男だ！', color: 'rgba(22,119,255,0.3)', id: 1 },
+  { x: 300, y: 200, w: 180, h: 40, text: '仲間を守る', color: 'rgba(22,119,255,0.3)', id: 2 },
+  { x: 100, y: 340, w: 160, h: 35, text: '夢を諦めるな', color: 'rgba(250,173,20,0.3)', id: 3 },
+  { x: 350, y: 460, w: 190, h: 38, text: '約束は必ず守る', color: 'rgba(250,173,20,0.3)', id: 4 },
+  { x: 200, y: 600, w: 140, h: 32, text: 'ドドドド', color: 'rgba(153,153,153,0.3)', id: 5 },
+];
+
+let currentTool = 'auto';
+let hoveredRegion = null;
+let contextTarget = null;
+let currentZoom = 100;
+
+// ========== 渲染文件树 ==========
+function renderFileTree() {
+  const container = document.getElementById('fileTree');
+  container.innerHTML = '';
+  renderNode(fileTreeData, container, 0);
+}
+
+function renderNode(node, container, depth) {
+  const item = document.createElement('div');
+  item.className = 'tree-item' + (node.active ? ' active' : '');
+  item.style.setProperty('--depth', depth);
+
+  if (node.type === 'folder') {
+    const arrow = document.createElement('span');
+    arrow.className = 'tree-arrow' + (node.expanded ? ' expanded' : '');
+    arrow.textContent = '▶';
+    item.appendChild(arrow);
+
+    const icon = document.createElement('span');
+    icon.className = 'tree-icon folder';
+    icon.textContent = node.expanded ? '📂' : '📁';
+    item.appendChild(icon);
+
+    const label = document.createElement('span');
+    label.className = 'tree-label';
+    label.textContent = node.name;
+    item.appendChild(label);
+
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      node.expanded = !node.expanded;
+      renderFileTree();
+    });
+
+    container.appendChild(item);
+
+    if (node.children && node.expanded) {
+      const childrenDiv = document.createElement('div');
+      childrenDiv.className = 'tree-children' + (node.expanded ? ' expanded' : '');
+      node.children.forEach(child => renderNode(child, childrenDiv, depth + 1));
+      container.appendChild(childrenDiv);
+    }
+  } else {
+    const arrow = document.createElement('span');
+    arrow.className = 'tree-arrow hidden';
+    arrow.textContent = '▶';
+    item.appendChild(arrow);
+
+    const icon = document.createElement('span');
+    icon.className = 'tree-icon file';
+    if (node.icon === 'image') {
+      icon.textContent = '🖼';
+    } else if (node.icon === 'doc') {
+      icon.textContent = '📄';
+      icon.style.color = '#1677ff';
+    } else {
+      icon.textContent = '📄';
+    }
+    item.appendChild(icon);
+
+    const label = document.createElement('span');
+    label.className = 'tree-label';
+    label.textContent = node.name;
+    item.appendChild(label);
+
+    if (node.status) {
+      const badge = document.createElement('span');
+      badge.className = 'tree-status ' + node.status;
+      badge.textContent = node.statusText;
+      item.appendChild(badge);
+    }
+
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      // 更新活跃状态
+      clearActive(fileTreeData);
+      node.active = true;
+      if (node.name) updateStatusBar(node.name, node.statusText || '');
+      renderFileTree();
+    });
+
+    container.appendChild(item);
+  }
+}
+
+function clearActive(node) {
+  node.active = false;
+  if (node.children) node.children.forEach(c => clearActive(c));
+}
+
+function updateStatusBar(fileName, status) {
+  const bar = document.getElementById('statusBar');
+  const dotClass = status === '已完成' ? 'green' : (status === '翻译中' || status === '加工中') ? 'blue' : 'orange';
+  bar.innerHTML = `
+    <span><span class="status-dot ${dotClass}"></span> ${fileName}</span>
+    <span>已识别 5 个文本区域</span>
+    <span>已翻译 2/5</span>
+  `;
+}
+
+// ========== 角色颜色映射 ==========
+const characterColors = {
+  '路飞': '#ff8c00',
+  '索隆': '#2e8b57',
+  '娜美': '#ff69b4',
+  '山治': '#4169e1',
+  '乌索普': '#9acd32',
+};
+
+const characterList = ['路飞', '索隆', '娜美', '山治', '乌索普'];
+
+let activeCharDropdown = null;
+
+function getCharColor(name) {
+  return characterColors[name] || '#999';
+}
+
+function getCharTagHTML(t) {
+  // #5 已忽略项不显示角色tag
+  if (t.status === 'ignored') return '';
+  if (t.character) {
+    const color = getCharColor(t.character);
+    return `<div class="character-tag-row">
+      <span class="character-tag" style="background:${color}" onclick="toggleCharDropdown(${t.id}, event)">${t.character}<span class="tag-arrow">▼</span></span>
+      <div class="character-dropdown" id="charDropdown-${t.id}">
+        ${characterList.map(c => `<div class="character-dropdown-item" onclick="selectCharacter(${t.id}, '${c}')"><span class="char-dot" style="background:${getCharColor(c)}"></span>${c}</div>`).join('')}
+        <div class="character-dropdown-divider"></div>
+        <div class="character-dropdown-item custom-item" onclick="selectCharacter(${t.id}, 'custom')">自定义...</div>
+      </div>
+    </div>`;
+  } else {
+    return `<div class="character-tag-row">
+      <span class="character-tag" style="background:#999" onclick="toggleCharDropdown(${t.id}, event)">未知角色<span class="tag-arrow">▼</span></span>
+      <div class="character-dropdown" id="charDropdown-${t.id}">
+        ${characterList.map(c => `<div class="character-dropdown-item" onclick="selectCharacter(${t.id}, '${c}')"><span class="char-dot" style="background:${getCharColor(c)}"></span>${c}</div>`).join('')}
+        <div class="character-dropdown-divider"></div>
+        <div class="character-dropdown-item custom-item" onclick="selectCharacter(${t.id}, 'custom')">自定义...</div>
+      </div>
+    </div>`;
+  }
+}
+
+function toggleCharDropdown(id, event) {
+  event.stopPropagation();
+  const dropdown = document.getElementById('charDropdown-' + id);
+  if (!dropdown) return;
+  // 关闭其他下拉
+  document.querySelectorAll('.character-dropdown.show').forEach(d => {
+    if (d.id !== 'charDropdown-' + id) d.classList.remove('show');
+  });
+  dropdown.classList.toggle('show');
+  activeCharDropdown = dropdown.classList.contains('show') ? id : null;
+}
+
+function selectCharacter(transId, charName) {
+  const t = translations.find(x => x.id === transId);
+  if (!t) return;
+  if (charName === 'custom') {
+    showToast('功能演示：自定义角色', '');
+  } else {
+    t.character = charName;
+    showToast('已将角色设为' + charName, 'success');
+  }
+  // 关闭下拉
+  const dropdown = document.getElementById('charDropdown-' + transId);
+  if (dropdown) dropdown.classList.remove('show');
+  activeCharDropdown = null;
+  renderTranslationList();
+}
+
+// 点击其他区域关闭角色下拉
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.character-tag') && !e.target.closest('.character-dropdown')) {
+    document.querySelectorAll('.character-dropdown.show').forEach(d => d.classList.remove('show'));
+    activeCharDropdown = null;
+  }
+});
+
+// ========== 渲染翻译列表 ==========
+function renderTranslationList() {
+  const container = document.getElementById('translationList');
+  container.innerHTML = '';
+
+  translations.forEach(t => {
+    const item = document.createElement('div');
+    item.className = 'translation-item';
+    item.dataset.id = t.id;
+
+    let actionsHTML = '';
+    if (t.actions.includes('edit')) actionsHTML += '<button class="item-btn" onclick="showToast(\'进入编辑模式\', \'\')">✏️ 编辑</button>';
+    if (t.actions.includes('confirm')) actionsHTML += '<button class="item-btn primary-sm" onclick="showToast(\'翻译已确认\', \'success\')">✅ 确认</button>';
+    if (t.actions.includes('translate')) actionsHTML += '<button class="item-btn primary-sm" onclick="handleTranslate(' + t.id + ')">🌐 翻译</button>';
+    if (t.actions.includes('delete')) actionsHTML += '<button class="item-btn danger" onclick="showToast(\'已删除翻译项 #' + t.id + '\', \'\')">🗑 删除</button>';
+    if (t.actions.includes('unignore')) actionsHTML += '<button class="item-btn" onclick="handleUnignore(' + t.id + ')">取消忽略</button>';
+
+    const noteStr = t.note ? ` <span class="ignored-text">(${t.note})</span>` : '';
+    const translatedHTML = t.translated
+      ? `<div class="translated-text"><span class="label">译文：</span>${t.translated}</div>`
+      : '';
+
+    item.innerHTML = `
+      <div class="item-header">
+        <span class="item-number">#${t.id}</span>
+        <span class="item-badge ${t.status}">${t.statusText}</span>
+      </div>
+      ${getCharTagHTML(t)}
+      <div class="original-text selectable" data-id="${t.id}"><span class="label">原文：</span><span class="original-content">${t.original}</span>${noteStr}</div>
+      ${translatedHTML}
+      <div class="item-actions">${actionsHTML}</div>
+    `;
+
+    // 右键菜单 - 原文区域特殊处理
+    const originalEl = item.querySelector('.original-text.selectable');
+    originalEl.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const selection = window.getSelection();
+      const selectedText = selection.toString().trim();
+      contextTarget = t.id;
+      if (selectedText) {
+        showContextMenuWithSelection(e.clientX, e.clientY, selectedText);
+      } else {
+        showContextMenu(e.clientX, e.clientY);
+      }
+    });
+
+    // 非原文区域的右键菜单
+    item.addEventListener('contextmenu', (e) => {
+      if (!e.target.closest('.original-text.selectable')) {
+        e.preventDefault();
+        contextTarget = t.id;
+        showContextMenu(e.clientX, e.clientY);
+      }
+    });
+
+    // 悬浮时高亮对应的Canvas区域
+    item.addEventListener('mouseenter', () => {
+      hoveredRegion = t.id;
+      drawCanvas();
+    });
+    item.addEventListener('mouseleave', () => {
+      hoveredRegion = null;
+      drawCanvas();
+    });
+
+    container.appendChild(item);
+  });
+}
+
+function handleTranslate(id) {
+  const t = translations.find(x => x.id === id);
+  if (t) {
+    const mockTranslations = {
+      3: '不要放弃梦想',
+      4: '约定一定会遵守',
+    };
+    t.status = 'translated';
+    t.statusText = '已翻译';
+    t.translated = mockTranslations[id] || '模拟翻译结果';
+    t.actions = ['edit', 'confirm', 'delete'];
+    renderTranslationList();
+    showToast('翻译完成：' + t.translated, 'success');
+    checkAllTranslated();
+  }
+}
+
+function handleUnignore(id) {
+  const t = translations.find(x => x.id === id);
+  if (t) {
+    t.status = 'pending';
+    t.statusText = '待翻译';
+    t.note = undefined;
+    t.actions = ['translate', 'delete'];
+    renderTranslationList();
+    showToast('已取消忽略', '');
+    // Update canvas region color
+    const region = textRegions.find(r => r.id === id);
+    if (region) region.color = 'rgba(250,173,20,0.3)';
+    drawCanvas();
+  }
+}
+
+function translateAll() {
+  translations.forEach(t => {
+    if (t.status === 'pending') {
+      const mockTranslations = {
+        3: '不要放弃梦想',
+        4: '约定一定会遵守',
+      };
+      t.status = 'translated';
+      t.statusText = '已翻译';
+      t.translated = mockTranslations[t.id] || '模拟翻译结果';
+      t.actions = ['edit', 'confirm', 'delete'];
+      const region = textRegions.find(r => r.id === t.id);
+      if (region) region.color = 'rgba(22,119,255,0.3)';
+    }
+  });
+  renderTranslationList();
+  drawCanvas();
+  showToast('全部翻译完成！', 'success');
+  checkAllTranslated();
+}
+
+function checkAllTranslated() {
+  const allDone = translations.every(t => t.status === 'translated');
+  const wrapper = document.getElementById('processBtnWrapper');
+  if (allDone) {
+    wrapper.classList.add('show');
+  } else {
+    wrapper.classList.remove('show');
+  }
+}
+
+// ========== Canvas 绘制 ==========
+function drawCanvas() {
+  const canvas = document.getElementById('mainCanvas');
+  const ctx = canvas.getContext('2d');
+  const scale = currentZoom / 100;
+
+  // 清空
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // 画模拟漫画背景
+  ctx.save();
+  ctx.scale(scale, scale);
+
+  // 漫画页背景
+  ctx.fillStyle = '#f0ece4';
+  ctx.fillRect(0, 0, 600, 800);
+
+  // 模拟漫画分格线
+  ctx.strokeStyle = '#222';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(30, 20, 540, 280);
+  ctx.strokeRect(30, 310, 250, 200);
+  ctx.strokeRect(290, 310, 280, 200);
+  ctx.strokeRect(30, 520, 540, 260);
+
+  // 模拟角色剪影
+  ctx.fillStyle = '#ddd';
+  ctx.beginPath();
+  ctx.ellipse(200, 160, 60, 90, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(400, 180, 50, 80, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(160, 620, 70, 100, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(420, 640, 55, 85, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 画文本选区
+  textRegions.forEach(region => {
+    const isHovered = hoveredRegion === region.id;
+    ctx.fillStyle = isHovered ? region.color.replace(/[\d.]+\)$/, '0.6)') : region.color;
+    ctx.fillRect(region.x, region.y, region.w, region.h);
+
+    ctx.strokeStyle = isHovered ? '#1677ff' : (region.color.includes('250,173,20') ? '#faad14' : region.color.includes('153,153,153') ? '#999' : '#1677ff');
+    ctx.lineWidth = isHovered ? 2.5 : 1.5;
+    ctx.setLineDash(isHovered ? [] : [4, 2]);
+    ctx.strokeRect(region.x, region.y, region.w, region.h);
+    ctx.setLineDash([]);
+
+    // 绘制文字
+    ctx.fillStyle = isHovered ? '#1677ff' : '#333';
+    ctx.font = (isHovered ? 'bold ' : '') + '12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    const lines = region.text.split('\n');
+    lines.forEach((line, i) => {
+      ctx.fillText(line, region.x + 6, region.y + 16 + i * 16);
+    });
+
+    // ID标签
+    if (isHovered) {
+      ctx.fillStyle = '#1677ff';
+      ctx.font = '10px sans-serif';
+      ctx.fillText('#' + region.id, region.x + region.w - 20, region.y - 4);
+    }
+  });
+
+  ctx.restore();
+}
+
+// Canvas鼠标交互
+function setupCanvasInteraction() {
+  const canvas = document.getElementById('mainCanvas');
+  const scale = currentZoom / 100;
+
+  canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) / scale;
+    const my = (e.clientY - rect.top) / scale;
+
+    let found = null;
+    textRegions.forEach(r => {
+      if (mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h) {
+        found = r.id;
+      }
+    });
+
+    if (found !== hoveredRegion) {
+      hoveredRegion = found;
+      canvas.style.cursor = found ? 'pointer' : 'default';
+      drawCanvas();
+    }
+  });
+
+  canvas.addEventListener('mouseleave', () => {
+    hoveredRegion = null;
+    drawCanvas();
+  });
+}
+
+// ========== 工具切换 ==========
+function switchTool(btn, tool) {
+  currentTool = tool;
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  showToast('已切换到' + (tool === 'rect' ? '框选模式' : tool === 'lasso' ? '套索模式' : '自动识别模式'), '');
+}
+
+// ========== 翻页 ==========
+function navigatePage(dir) {
+  showToast(dir > 0 ? '切换到下一页' : '切换到上一页', '');
+}
+
+// ========== 缩放 ==========
+function updateZoom(val) {
+  currentZoom = parseInt(val);
+  document.getElementById('zoomValue').textContent = val + '%';
+
+  const canvas = document.getElementById('mainCanvas');
+  const wrapper = document.getElementById('canvasWrapper');
+  const displayW = 600 * currentZoom / 100;
+  const displayH = 800 * currentZoom / 100;
+  canvas.style.width = displayW + 'px';
+  canvas.style.height = displayH + 'px';
+  wrapper.style.width = displayW + 'px';
+  wrapper.style.height = displayH + 'px';
+
+  drawCanvas();
+}
+
+// ========== 右键菜单 ==========
+function showContextMenu(x, y) {
+  const menu = document.getElementById('contextMenu');
+  menu.style.left = x + 'px';
+  menu.style.top = y + 'px';
+  menu.classList.add('show');
+}
+
+function hideContextMenu() {
+  document.getElementById('contextMenu').classList.remove('show');
+  document.getElementById('contextMenuSelected').classList.remove('show');
+}
+
+let selectedTermText = '';
+
+function showContextMenuWithSelection(x, y, selectedText) {
+  selectedTermText = selectedText;
+  const menu = document.getElementById('contextMenuSelected');
+  menu.style.left = x + 'px';
+  menu.style.top = y + 'px';
+  menu.classList.add('show');
+}
+
+function contextActionWithSelection(action) {
+  hideContextMenu();
+  if (action === 'addGlossary') {
+    openGlossaryModal(selectedTermText);
+  } else if (action === 'ignore') {
+    const t = translations.find(x => x.id === contextTarget);
+    if (t) {
+      t.status = 'ignored';
+      t.statusText = '已忽略';
+      t.actions = ['unignore'];
+      renderTranslationList();
+      const region = textRegions.find(r => r.id === contextTarget);
+      if (region) region.color = 'rgba(153,153,153,0.3)';
+      drawCanvas();
+      showToast('已忽略 #' + contextTarget, 'warning');
+      checkAllTranslated();
+    }
+  } else if (action === 'delete') {
+    const idx = translations.findIndex(x => x.id === contextTarget);
+    if (idx >= 0) {
+      translations.splice(idx, 1);
+      renderTranslationList();
+      showToast('已删除翻译项 #' + contextTarget, '');
+      checkAllTranslated();
+    }
+  }
+}
+
+function contextAction(action) {
+  hideContextMenu();
+  if (action === 'ignore') {
+    const t = translations.find(x => x.id === contextTarget);
+    if (t) {
+      t.status = 'ignored';
+      t.statusText = '已忽略';
+      t.actions = ['unignore'];
+      renderTranslationList();
+      const region = textRegions.find(r => r.id === contextTarget);
+      if (region) region.color = 'rgba(153,153,153,0.3)';
+      drawCanvas();
+      showToast('已忽略 #' + contextTarget, 'warning');
+      checkAllTranslated();
+    }
+  } else if (action === 'glossary') {
+    const t = translations.find(x => x.id === contextTarget);
+    if (t) {
+      openGlossaryModal(t.original);
+    } else {
+      showToast('已加入术语库', 'success');
+    }
+  } else if (action === 'delete') {
+    const idx = translations.findIndex(x => x.id === contextTarget);
+    if (idx >= 0) {
+      translations.splice(idx, 1);
+      renderTranslationList();
+      showToast('已删除翻译项 #' + contextTarget, '');
+      checkAllTranslated();
+    }
+  }
+}
+
+document.addEventListener('click', hideContextMenu);
+
+// ========== 设置模态框 ==========
+function openSettings() {
+  document.getElementById('settingsModal').classList.add('show');
+}
+
+function closeSettings() {
+  document.getElementById('settingsModal').classList.remove('show');
+}
+
+document.getElementById('settingsModal').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeSettings();
+});
+
+// ========== Toast ==========
+function showToast(msg, type) {
+  const toast = document.getElementById('toast');
+  toast.className = 'toast' + (type ? ' ' + type : '');
+  const icons = { success: '✅', warning: '⚠️', error: '❌' };
+  toast.innerHTML = (icons[type] || 'ℹ️') + ' ' + msg;
+  toast.classList.add('show');
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+// ========== 面板宽度拖拽 ==========
+function setupResize(handleId, panelId, direction) {
+  const handle = document.getElementById(handleId);
+  const panel = document.getElementById(panelId);
+  let startX, startW;
+
+  handle.addEventListener('mousedown', (e) => {
+    startX = e.clientX;
+    startW = panel.offsetWidth;
+    handle.classList.add('dragging');
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    e.preventDefault();
+  });
+
+  function onMove(e) {
+    const dx = e.clientX - startX;
+    const newW = direction === 'left' ? startW + dx : startW - dx;
+    if (newW >= parseInt(panel.style.minWidth || 200) && newW <= parseInt(panel.style.maxWidth || 500)) {
+      panel.style.width = newW + 'px';
+    }
+  }
+
+  function onUp() {
+    handle.classList.remove('dragging');
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+  }
+}
+
+// ========== 语言切换 ==========
+const langMap = { ja: '日语', en: '英语', ko: '韩语', zh: '中文' };
+
+function onLangChange() {
+  showToast('语言设置已更新', 'success');
+}
+
+function getSrcLang() {
+  return document.getElementById('srcLang').value;
+}
+
+function getTgtLang() {
+  return document.getElementById('tgtLang').value;
+}
+
+// ========== 术语库弹窗 ==========
+let glossaryTargetRows = [];
+
+function openGlossaryModal(selectedText) {
+  const srcLang = getSrcLang();
+  const tgtLang = getTgtLang();
+
+  // 设置源术语
+  document.getElementById('glossarySrcInput').value = selectedText;
+  const srcTag = document.getElementById('glossarySrcTag');
+  srcTag.textContent = langMap[srcLang] || srcLang;
+  srcTag.className = 'lang-tag ' + srcLang;
+
+  // 初始化目标行
+  glossaryTargetRows = [{ lang: tgtLang, value: '' }];
+  renderTargetRows();
+
+  // 清空备注
+  document.getElementById('glossaryNote').value = '';
+
+  // 显示弹窗
+  document.getElementById('glossaryModal').classList.add('show');
+}
+
+function closeGlossaryModal() {
+  document.getElementById('glossaryModal').classList.remove('show');
+}
+
+function renderTargetRows() {
+  const container = document.getElementById('targetRowsContainer');
+  container.innerHTML = '';
+
+  glossaryTargetRows.forEach((row, idx) => {
+    const rowDiv = document.createElement('div');
+    rowDiv.className = 'target-row';
+
+    // 语言下拉
+    const langSel = document.createElement('select');
+    langSel.className = 'lang-select';
+    ['zh', 'en', 'ja', 'ko'].forEach(code => {
+      const opt = document.createElement('option');
+      opt.value = code;
+      opt.textContent = langMap[code];
+      if (code === row.lang) opt.selected = true;
+      langSel.appendChild(opt);
+    });
+    langSel.addEventListener('change', (e) => {
+      glossaryTargetRows[idx].lang = e.target.value;
+    });
+
+    // 翻译输入框
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'form-input';
+    input.placeholder = '输入翻译';
+    input.value = row.value;
+    input.addEventListener('input', (e) => {
+      glossaryTargetRows[idx].value = e.target.value;
+    });
+
+    rowDiv.appendChild(langSel);
+    rowDiv.appendChild(input);
+
+    // 删除按钮（第一行不可删）
+    if (idx > 0) {
+      const delBtn = document.createElement('button');
+      delBtn.className = 'row-delete';
+      delBtn.textContent = '✕';
+      delBtn.title = '删除';
+      delBtn.addEventListener('click', () => {
+        glossaryTargetRows.splice(idx, 1);
+        renderTargetRows();
+      });
+      rowDiv.appendChild(delBtn);
+    }
+
+    container.appendChild(rowDiv);
+  });
+}
+
+function addTargetRow() {
+  // 找一个尚未使用的语言
+  const usedLangs = glossaryTargetRows.map(r => r.lang);
+  const allLangs = ['zh', 'en', 'ja', 'ko'];
+  const available = allLangs.find(l => !usedLangs.includes(l));
+  glossaryTargetRows.push({ lang: available || 'zh', value: '' });
+  renderTargetRows();
+}
+
+function confirmGlossary() {
+  const srcText = document.getElementById('glossarySrcInput').value;
+  closeGlossaryModal();
+  showToast('术语\'' + srcText + '\'已加入术语库', 'success');
+}
+
+document.getElementById('glossaryModal').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeGlossaryModal();
+});
+
+// ========== 角色管理弹窗 ==========
+function openCharacterModal() {
+  document.getElementById('characterModal').classList.add('show');
+}
+
+function closeCharacterModal() {
+  document.getElementById('characterModal').classList.remove('show');
+}
+
+document.getElementById('characterModal').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeCharacterModal();
+});
+
+// ========== 风格规则弹窗 ==========
+function openStyleRuleModal() {
+  document.getElementById('styleRuleModal').classList.add('show');
+}
+
+function closeStyleRuleModal() {
+  document.getElementById('styleRuleModal').classList.remove('show');
+}
+
+document.getElementById('styleRuleModal').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeStyleRuleModal();
+});
+
+// ========== 初始化 ==========
+function init() {
+  renderFileTree();
+  renderTranslationList();
+  setupCanvasInteraction();
+  drawCanvas();
+  setupResize('leftResize', 'leftPanel', 'left');
+  setupResize('rightResize', 'rightPanel', 'right');
+
+  // ESC 关闭模态框
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeSettings();
+      closeGlossaryModal();
+      closeCharacterModal();
+      closeStyleRuleModal();
+      hideContextMenu();
+      // 关闭角色下拉
+      document.querySelectorAll('.character-dropdown.show').forEach(d => d.classList.remove('show'));
+      activeCharDropdown = null;
+    }
+  });
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+# 二进制产物
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# 运行时数据
+data/
+*.db
+*.db-journal
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Go
+vendor/
+
+# 前端构建产物
+web/dist/
+web/node_modules/
