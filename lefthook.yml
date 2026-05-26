@@ -1,0 +1,17 @@
+pre-commit:
+  parallel: true
+  commands:
+    # Go 静态分析
+    go-lint:
+      glob: "**/*.go"
+      run: golangci-lint run --fix ./...
+
+    # Go 构建检查（确保能编译通过）
+    go-build:
+      run: go build ./...
+
+    # 前端 TypeScript 检查
+    frontend-lint:
+      root: "web/"
+      glob: "src/**/*.{ts,tsx}"
+      run: npm run lint --if-present

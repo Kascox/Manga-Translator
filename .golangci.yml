@@ -1,0 +1,29 @@
+version: "2"
+
+linters:
+  default: none
+  enable:
+    - govet        # Go 官方 vet 检查
+    - staticcheck  # 强力静态分析
+    - errcheck     # 错误未处理检查
+    - ineffassign  # 无效赋值检查
+    - unused       # 未使用变量/函数检查
+    - gocritic     # 代码风格建议
+  exclusions:
+    # 排除测试文件的部分检查
+    rules:
+      - path: "_test\\.go"
+        linters:
+          - errcheck
+          - gocritic
+    # 排除 web/node_modules 目录（"/" 在 Windows 上自动转换为 "\"）
+    paths:
+      - web/node_modules
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    paths:
+      - web/node_modules
